@@ -1,0 +1,5 @@
+{
+  "name": "IntelliSlice: AI 3D Slicer",
+  "description": "An AI-driven, web-based 3D printing slicer. Describe your part's intended use, and our AI will generate optimized print settings for the Orca Slicer engine, simplifying the path from 3D model to perfect print.",
+  "requestFramePermissions": []
+}
