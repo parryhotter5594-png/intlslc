@@ -162,13 +162,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettin
 
         <CategorySection title="Supports">
             <CheckboxInput {...settingProps('enableSupports', 'Generate Support')} value={settings.enableSupports} onChange={handleChange} />
-            <SelectInput {...settingProps('supportType', 'Support Structure')} value={settings.supportType} onChange={handleChange} options={['None', 'Standard', 'Tree']} />
-            <SelectInput {...settingProps('supportStyle', 'Support Placement')} value={settings.supportStyle} onChange={handleChange} options={['Touching Buildplate', 'Everywhere']} />
+            <SelectInput {...settingProps('supportType', 'Support Structure')} value={settings.supportType} onChange={handleChange} options={['None', 'Normal', 'Tree']} />
+            <CheckboxInput {...settingProps('supportOnBuildPlateOnly', 'Supports on Build Plate Only')} value={settings.supportOnBuildPlateOnly} onChange={handleChange} />
             <NumberInput type="number" {...settingProps('supportOverhangAngle', 'Support Overhang Angle')} value={settings.supportOverhangAngle} onChange={handleChange} unit="°" step={1}/>
             <NumberInput type="number" {...settingProps('supportTopZDistance', 'Support Z Distance')} value={settings.supportTopZDistance} onChange={handleChange} unit="mm" step={0.05}/>
             <NumberInput type="number" {...settingProps('supportBottomZDistance', 'Support Bottom Distance')} value={settings.supportBottomZDistance} onChange={handleChange} unit="mm" step={0.05}/>
             <NumberInput type="number" {...settingProps('supportObjectXYDistance', 'Support XY Distance')} value={settings.supportObjectXYDistance} onChange={handleChange} unit="mm" step={0.1}/>
-            <NumberInput type="number" {...settingProps('raftLayers', 'Raft Extra Margin')} value={settings.raftLayers} onChange={handleChange} unit="mm" step={1}/>
+            <NumberInput type="number" {...settingProps('raftLayers', 'Raft Layers')} value={settings.raftLayers} onChange={handleChange} unit="" step={1}/>
         </CategorySection>
 
         <CategorySection title="Speed">
@@ -185,23 +185,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettin
         </CategorySection>
         
         <CategorySection title="Bed Adhesion">
-           <SelectInput {...settingProps('brimType', 'Build Plate Adhesion Type')} value={settings.brimType} onChange={handleChange} options={['none', 'skirt', 'brim', 'raft']} />
-           <NumberInput type="number" {...settingProps('elephantFootCompensation', 'Initial Layer Horizontal Expansion')} value={settings.elephantFootCompensation} onChange={handleChange} unit="mm" step={0.01}/>
+           <SelectInput {...settingProps('brimType', 'Brim Type')} value={settings.brimType} onChange={handleChange} options={['none', 'outer_brim', 'inner_brim', 'outer_and_inner_brim']} />
+           <NumberInput type="number" {...settingProps('elephantFootCompensation', 'Elephant Foot Compensation')} value={settings.elephantFootCompensation} onChange={handleChange} unit="mm" step={0.01}/>
         </CategorySection>
         
         <CategorySection title="Advanced">
-            <SelectInput {...settingProps('seamPosition', 'Z Seam Alignment')} value={settings.seamPosition} onChange={handleChange} options={['User Specified', 'Shortest', 'Random']} />
+            <SelectInput {...settingProps('seamPosition', 'Z Seam Alignment')} value={settings.seamPosition} onChange={handleChange} options={['Nearest', 'Random', 'Back', 'Aligned']} />
             <CheckboxInput {...settingProps('sequentialPrinting', 'Print Sequence')} value={settings.sequentialPrinting} onChange={handleChange} />
             <NumberInput type="number" {...settingProps('retractionLength', 'Retraction Distance')} value={settings.retractionLength} onChange={handleChange} unit="mm" step={0.1}/>
             <NumberInput type="number" {...settingProps('retractionSpeed', 'Retraction Speed')} value={settings.retractionSpeed} onChange={handleChange} unit="mm/s" step={1}/>
             <NumberInput type="number" {...settingProps('zHopWhenRetracted', 'Z Hop Height')} value={settings.zHopWhenRetracted} onChange={handleChange} unit="mm" step={0.1}/>
-            <NumberInput type="number" {...settingProps('maxVolumetricSpeed', 'Maximum Speed')} value={settings.maxVolumetricSpeed} onChange={handleChange} unit="mm³/s" step={1}/>
+            <NumberInput type="number" {...settingProps('maxVolumetricSpeed', 'Maximum Volumetric Speed')} value={settings.maxVolumetricSpeed} onChange={handleChange} unit="mm³/s" step={1}/>
         </CategorySection>
 
         <CategorySection title="Filament">
             <SelectInput {...settingProps('filamentType', 'Material Type')} value={settings.filamentType} onChange={handleChange} options={['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'Other']} />
             <NumberInput type="number" {...settingProps('filamentDiameter', 'Diameter')} value={settings.filamentDiameter} onChange={handleChange} unit="mm" step={0.01}/>
-            <NumberInput type="number" {...settingProps('flowRatio', 'Flow')} value={settings.flowRatio} onChange={handleChange} unit="%" step={1}/>
+            <NumberInput type="number" {...settingProps('flowRatio', 'Flow Ratio')} value={settings.flowRatio} onChange={handleChange} unit="" step={0.01}/>
             <NumberInput type="number" {...settingProps('nozzleTemp', 'Printing Temperature')} value={settings.nozzleTemp} onChange={handleChange} unit="°C" step={1}/>
             <NumberInput type="number" {...settingProps('firstLayerNozzleTemp', 'Initial Printing Temperature')} value={settings.firstLayerNozzleTemp} onChange={handleChange} unit="°C" step={1}/>
             <NumberInput type="number" {...settingProps('bedTemp', 'Build Plate Temperature')} value={settings.bedTemp} onChange={handleChange} unit="°C" step={1}/>
@@ -212,7 +212,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettin
             <CheckboxInput {...settingProps('enableFan', 'Enable Print Cooling')} value={settings.enableFan} onChange={handleChange} />
             <NumberInput type="number" {...settingProps('fanSpeed', 'Fan Speed')} value={settings.fanSpeed} onChange={handleChange} unit="%" step={1} min={0} max={100}/>
             <CheckboxInput {...settingProps('keepFanAlwaysOn', 'Keep Fan Always On')} value={settings.keepFanAlwaysOn} onChange={handleChange} />
-            <CheckboxInput {...settingProps('slowDownForCoolDown', 'Enable Cooling')} value={settings.slowDownForCoolDown} onChange={handleChange} />
+            <CheckboxInput {...settingProps('slowDownForCoolDown', 'Slow Down For Cooling')} value={settings.slowDownForCoolDown} onChange={handleChange} />
         </CategorySection>
         
       </div>

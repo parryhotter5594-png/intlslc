@@ -32,13 +32,13 @@ export interface SlicerSettings {
 
   // Supports
   enableSupports: boolean;
-  supportType: 'None' | 'Standard' | 'Tree'; // Cura specific
-  supportStyle: 'Touching Buildplate' | 'Everywhere'; // Cura specific
+  supportType: 'None' | 'Normal' | 'Tree';
+  supportOnBuildPlateOnly: boolean;
   supportOverhangAngle: number; // degrees
   supportTopZDistance: number; // mm
   supportBottomZDistance: number; // mm
   supportObjectXYDistance: number; // mm
-  raftLayers: number; // In Cura, this is more like raft margin
+  raftLayers: number;
 
   // Speed
   firstLayerSpeed: number; // mm/s
@@ -53,11 +53,11 @@ export interface SlicerSettings {
   minPrintSpeed: number; // mm/s
 
   // Bed Adhesion
-  brimType: 'none' | 'skirt' | 'brim' | 'raft'; // Cura specific
+  brimType: 'none' | 'outer_brim' | 'inner_brim' | 'outer_and_inner_brim';
   elephantFootCompensation: number; // mm
   
   // Advanced
-  seamPosition: 'Shortest' | 'Random' | 'User Specified' | 'Back';
+  seamPosition: 'Nearest' | 'Random' | 'Back' | 'Aligned';
   sequentialPrinting: boolean;
   retractionLength: number; // mm
   retractionSpeed: number; // mm/s
@@ -67,7 +67,7 @@ export interface SlicerSettings {
   // Filament
   filamentType: 'PLA' | 'PETG' | 'ABS' | 'ASA' | 'TPU' | 'Other';
   filamentDiameter: number; // mm
-  flowRatio: number; // percentage
+  flowRatio: number; // ratio, e.g., 0.98
   pressureAdvance: number;
   filamentCost: number; // per kg
   filamentDensity: number; // g/cm^3

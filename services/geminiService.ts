@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeminiResponse, SlicerSettings, PrintEstimates } from '../types';
 
@@ -33,15 +34,15 @@ const settingsSchema = {
         infillWallOverlap: { type: Type.NUMBER, description: "Overlap percentage between infill and walls." },
         minimumInfillArea: { type: Type.NUMBER, description: "Minimum area for an area to get infill in mm^2." },
 
-        // Supports - Note: Cura has fewer options than Orca here
+        // Supports
         enableSupports: { type: Type.BOOLEAN, description: "Whether to enable supports." },
-        supportType: { type: Type.STRING, enum: ['None', 'Standard', 'Tree'], description: "The type of support material to use ('Standard' for normal, 'Tree' for tree)." },
-        supportStyle: { type: Type.STRING, enum: ['Touching Buildplate', 'Everywhere'], description: "Where supports should be placed." },
+        supportType: { type: Type.STRING, enum: ['None', 'Normal', 'Tree'], description: "The type of support material to use." },
+        supportOnBuildPlateOnly: { type: Type.BOOLEAN, description: "Only generate supports from the build plate." },
         supportOverhangAngle: { type: Type.INTEGER, description: "Support overhang angle in degrees." },
         supportTopZDistance: { type: Type.NUMBER, description: "Top Z distance between support and model in mm." },
         supportBottomZDistance: { type: Type.NUMBER, description: "Bottom Z distance between support and model in mm." },
         supportObjectXYDistance: { type: Type.NUMBER, description: "XY distance between support and model in mm." },
-        raftLayers: { type: Type.INTEGER, description: "Number of raft layers. For Cura, this is more abstract." },
+        raftLayers: { type: Type.INTEGER, description: "Number of raft layers. Set to 0 to disable raft." },
 
         // Speed
         firstLayerSpeed: { type: Type.INTEGER, description: "Print speed for the first layer in mm/s." },
@@ -56,11 +57,11 @@ const settingsSchema = {
         minPrintSpeed: { type: Type.INTEGER, description: "Minimum print speed in mm/s." },
 
         // Bed Adhesion
-        brimType: { type: Type.STRING, enum: ['none', 'skirt', 'brim', 'raft'], description: "Type of brim to use for bed adhesion." },
+        brimType: { type: Type.STRING, enum: ['none', 'outer_brim', 'inner_brim', 'outer_and_inner_brim'], description: "Type of brim to use. To use a skirt, set this to 'none' and configure skirt loops separately." },
         elephantFootCompensation: { type: Type.NUMBER, description: "Compensation for first layer squish in mm." },
         
         // Advanced
-        seamPosition: { type: Type.STRING, enum: ['Shortest', 'Random', 'User Specified'], description: "Position of the seam." },
+        seamPosition: { type: Type.STRING, enum: ['Nearest', 'Random', 'Back', 'Aligned'], description: "Position of the seam." },
         sequentialPrinting: { type: Type.BOOLEAN, description: "Print objects one at a time." },
         retractionLength: { type: Type.NUMBER, description: "Filament retraction length in mm." },
         retractionSpeed: { type: Type.INTEGER, description: "Filament retraction speed in mm/s." },
@@ -70,8 +71,8 @@ const settingsSchema = {
         // Filament
         filamentType: { type: Type.STRING, enum: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'Other'], description: "The optimal filament material." },
         filamentDiameter: { type: Type.NUMBER, description: "Diameter of the filament in mm." },
-        flowRatio: { type: Type.NUMBER, description: "Filament flow ratio as a percentage (e.g., 98)." },
-        pressureAdvance: { type: Type.NUMBER, description: "Pressure advance value. Not native to Cura, but can be used for Klipper." },
+        flowRatio: { type: Type.NUMBER, description: "Filament flow ratio as a decimal (e.g., 0.98 for 98%)." },
+        pressureAdvance: { type: Type.NUMBER, description: "Pressure advance value." },
         filamentCost: { type: Type.NUMBER, description: "Cost of the filament per kg." },
         filamentDensity: { type: Type.NUMBER, description: "Density of the filament in g/cm^3." },
         nozzleTemp: { type: Type.INTEGER, description: "Nozzle temperature in Celsius." },
@@ -85,7 +86,7 @@ const settingsSchema = {
         keepFanAlwaysOn: { type: Type.BOOLEAN, description: "Keep the part cooling fan always on." },
         slowDownForCoolDown: { type: Type.BOOLEAN, description: "Slow down the print for better cooling on small layers." },
         
-        // Printer - These are less relevant for Cura profiles but good for context
+        // Printer - These are less relevant for OrcaSlicer profiles but good for context
         nozzleDiameter: { type: Type.NUMBER, description: "Diameter of the nozzle in mm." },
         bedShape: { type: Type.STRING, enum: ['Rectangular', 'Circular'], description: "Shape of the printer bed." },
         printableAreaX: { type: Type.NUMBER, description: "Printable area on the X-axis in mm." },
@@ -124,14 +125,14 @@ export const getSlicerSettingsFromPrompt = async (
   printerModel: string,
 ): Promise<GeminiResponse> => {
   const prompt = `
-    System Instruction: You are an expert 3D printing engineer. Your task is to generate a complete and optimal set of advanced slicer parameters specifically for the UltiMaker Cura slicer engine.
-    The output must be a valid JSON object matching the provided schema, containing values for ALL defined settings. Adapt concepts to Cura's terminology (e.g., 'Support Structure' can be 'normal' or 'tree').
+    System Instruction: You are an expert 3D printing engineer. Your task is to generate a complete and optimal set of advanced slicer parameters specifically for the OrcaSlicer engine.
+    The output must be a valid JSON object matching the provided schema, containing values for ALL defined settings.
 
     User's Request: "${userPrompt}"
     Selected Printer: "${printerModel}"
-    Selected Slicer: "UltiMaker Cura"
+    Selected Slicer: "OrcaSlicer"
 
-    Analyze the user's request and provide the best, most detailed settings for the selected printer and Cura. Consider material choice, strength requirements, desired finish quality, print speed, and any other implied needs. 
+    Analyze the user's request and provide the best, most detailed settings for the selected printer and OrcaSlicer. Consider material choice, strength requirements, desired finish quality, print speed, and any other implied needs. 
     Also provide a brief, one-sentence explanation for your core choices and initial estimates for print time and material usage.
     `;
 
@@ -161,12 +162,12 @@ export const getUpdatedEstimates = async (
   printerModel: string,
 ): Promise<PrintEstimates> => {
   const prompt = `
-    System Instruction: You are a 3D printing estimation engine. Given a full Cura slicer profile and the original intent, you will recalculate and return only the new print time and material usage estimates.
+    System Instruction: You are a 3D printing estimation engine. Given a full OrcaSlicer profile and the original intent, you will recalculate and return only the new print time and material usage estimates.
     The output must be a valid JSON object matching the provided schema for estimates ONLY. Do not include any other text or explanations.
 
     Original User's Request: "${userPrompt}"
     Selected Printer: "${printerModel}"
-    Selected Slicer: "UltiMaker Cura"
+    Selected Slicer: "OrcaSlicer"
     Updated Slicer Settings:
     ${JSON.stringify(settings, null, 2)}
 

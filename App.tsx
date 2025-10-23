@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { FileUpload } from './components/FileUpload';
@@ -7,6 +8,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ViewerPanel } from './components/ViewerPanel';
 import type { MeshStatus, Printer, SlicerSettings, PrintEstimates, GeminiResponse } from './types';
 import { getSlicerSettingsFromPrompt, getUpdatedEstimates } from './services/geminiService';
+import { generate3mfProject } from './services/fileGenerator';
 import { PRINTERS } from './constants';
 import type { Mesh } from 'three';
 
@@ -105,26 +107,11 @@ function App() {
 
     setIsGeneratingProject(true);
     try {
-      const formData = new FormData();
-      formData.append('model', uploadedFile);
-      formData.append('settings', JSON.stringify(slicerSettings));
-      formData.append('printer', JSON.stringify(selectedPrinter));
-
-      // Note: In a real deployment, this URL should be configurable.
-      const response = await fetch('/api/generate-project', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} ${errorText}`);
-      }
+      const projectBlob = await generate3mfProject(uploadedFile, slicerSettings);
       
-      const blob = await response.blob();
       const link = document.createElement('a');
       const profileName = uploadedFile.name.split('.').slice(0, -1).join('.') || 'project';
-      link.href = URL.createObjectURL(blob);
+      link.href = URL.createObjectURL(projectBlob);
       link.download = `${profileName}_IntelliSlice.3mf`;
       document.body.appendChild(link);
       link.click();
@@ -132,7 +119,7 @@ function App() {
       URL.revokeObjectURL(link.href);
 
     } catch (error) {
-      console.error("Failed to generate .3mf file from server", error);
+      console.error("Failed to generate .3mf file", error);
       alert("An error occurred while generating the project file.");
     } finally {
         setIsGeneratingProject(false);

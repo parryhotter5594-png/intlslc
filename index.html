@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IntelliSlice: AI 3D Slicer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#4fd1c5', // A vibrant teal, good for primary actions
+              secondary: '#2d3748', // A dark gray, for component backgrounds
+              dark: '#1a202c', // A very dark gray, for the main background
+              light: '#f7fafc', // Off-white, for text
+            },
+          },
+        },
+      };
+    </script>
     <style>
       body {
         background-color: #1a1a1a;
@@ -20,12 +34,11 @@
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
-    "three/": "https://aistudiocdn.com/three@^0.180.0/",
-    "jszip": "https://aistudiocdn.com/jszip@^3.10.1"
+    "jszip": "https://aistudiocdn.com/jszip@^3.10.1",
+    "three/": "https://aistudiocdn.com/three@^0.180.0/"
   }
 }
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
