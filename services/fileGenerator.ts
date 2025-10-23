@@ -1,5 +1,42 @@
 import JSZip from 'jszip';
 import type { SlicerSettings } from '../types';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import * as THREE from 'three';
+
+/**
+ * Converts STL file to 3MF mesh XML format
+ * @param stlFile - The STL file to convert
+ * @returns Promise with the mesh data (vertices and triangles)
+ */
+const convertSTLTo3MFMesh = async (stlFile: File): Promise<{vertices: number[], triangles: number[]}> => {
+    const arrayBuffer = await stlFile.arrayBuffer();
+    const loader = new STLLoader();
+    const geometry = loader.parse(arrayBuffer);
+
+    const vertices: number[] = [];
+    const triangles: number[] = [];
+
+    // Get position attribute from geometry
+    const positionAttribute = geometry.getAttribute('position');
+
+    if (positionAttribute) {
+        // Extract vertices
+        for (let i = 0; i < positionAttribute.count; i++) {
+            vertices.push(
+                positionAttribute.getX(i),
+                positionAttribute.getY(i),
+                positionAttribute.getZ(i)
+            );
+        }
+
+        // Create triangles (each 3 vertices form a triangle)
+        for (let i = 0; i < positionAttribute.count; i += 3) {
+            triangles.push(i, i + 1, i + 2);
+        }
+    }
+
+    return { vertices, triangles };
+};
 
 /**
  * Converts the application's camelCase SlicerSettings object into a
@@ -110,25 +147,72 @@ const convertSettingsToIni = (settings: SlicerSettings): string => {
 
 
 /**
+ * Creates the 3D model XML file in 3MF format
+ * @param vertices - Array of vertex coordinates [x1, y1, z1, x2, y2, z2, ...]
+ * @param triangles - Array of triangle vertex indices [v1, v2, v3, v4, v5, v6, ...]
+ * @param modelName - Original model file name for metadata
+ * @returns XML string for 3dmodel.model file
+ */
+const create3DModelXML = (vertices: number[], triangles: number[], modelName: string): string => {
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <metadata name="Title">${modelName}</metadata>
+  <metadata name="Designer">IntelliSlice AI</metadata>
+  <metadata name="Application">IntelliSlice</metadata>
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+`;
+
+    // Add vertices (with proper formatting)
+    for (let i = 0; i < vertices.length; i += 3) {
+        const x = vertices[i].toFixed(6);
+        const y = vertices[i + 1].toFixed(6);
+        const z = vertices[i + 2].toFixed(6);
+        xml += `          <vertex x="${x}" y="${y}" z="${z}" />\n`;
+    }
+
+    xml += `        </vertices>
+        <triangles>
+`;
+
+    // Add triangles
+    for (let i = 0; i < triangles.length; i += 3) {
+        xml += `          <triangle v1="${triangles[i]}" v2="${triangles[i + 1]}" v3="${triangles[i + 2]}" />\n`;
+    }
+
+    xml += `        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="1" />
+  </build>
+</model>`;
+
+    return xml;
+};
+
+/**
  * Generates the XML content for the [Content_Types].xml file in a 3MF archive.
  * @returns XML string.
  */
 const createContentTypesXML = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="stl" ContentType="application/vnd.ms-pki.stl"/>
-<Default Extension="config" ContentType="text/plain"/>
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+  <Default Extension="config" ContentType="text/plain"/>
 </Types>`;
 
 
 /**
  * Generates the XML content for the relationships file in a 3MF archive.
- * @param modelFileName - The name of the 3D model file.
  * @returns XML string.
  */
-const createRelationshipsXML = (modelFileName: string): string => `<?xml version="1.0" encoding="UTF-8"?>
+const createRelationshipsXML = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Target="/3D/${modelFileName}" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+  <Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
 </Relationships>`;
 
 
@@ -141,22 +225,34 @@ const createRelationshipsXML = (modelFileName: string): string => `<?xml version
 export const generate3mfProject = async (modelFile: File, settings: SlicerSettings): Promise<Blob> => {
     const zip = new JSZip();
 
-    // 1. Read model file content
-    const modelContent = await modelFile.arrayBuffer();
+    // 1. Convert STL to 3MF mesh format
+    const { vertices, triangles } = await convertSTLTo3MFMesh(modelFile);
 
-    // 2. Convert settings to INI format
+    // 2. Create 3D model XML with metadata
+    const modelName = modelFile.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const modelXML = create3DModelXML(vertices, triangles, modelName);
+
+    // 3. Convert settings to INI format
     const configContent = convertSettingsToIni(settings);
 
-    // 3. Create XML metadata files
+    // 4. Create XML metadata files
     const contentTypesXML = createContentTypesXML();
-    const relationshipsXML = createRelationshipsXML(modelFile.name);
+    const relationshipsXML = createRelationshipsXML();
 
-    // 4. Add all files to the zip archive
+    // 5. Add all files to the zip archive in proper 3MF structure
     zip.file('[Content_Types].xml', contentTypesXML);
     zip.file('_rels/.rels', relationshipsXML);
-    zip.file(`3D/${modelFile.name}`, modelContent);
-    zip.file('Metadata/Slicer_settings.config', configContent);
+    zip.file('3D/3dmodel.model', modelXML);
 
-    // 5. Generate and return the blob
-    return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml' });
+    // Add config in multiple locations for better compatibility
+    zip.file('Metadata/Slic3r_PE.config', configContent);
+    zip.file('Metadata/OrcaSlicer.config', configContent);
+
+    // 6. Generate and return the blob with proper compression
+    return zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+        mimeType: 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml'
+    });
 };
